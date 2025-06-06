@@ -3,29 +3,27 @@ import {
   Container,
   Paper,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   TextField,
   Button,
   Grid,
   Box,
   Alert,
+  CircularProgress
 } from '@mui/material';
 import axios from 'axios';
+import MapaArgentina from './MapaArgentina';
 
-function Simulador() {
+const Simulador = () => {
   const [provincias, setProvincias] = useState([]);
   const [partidos, setPartidos] = useState([]);
-  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('');
+  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState(null);
   const [porcentajes, setPorcentajes] = useState({});
-  const [total, setTotal] = useState(0);
+  const [totalVotos, setTotalVotos] = useState(0);
   const [error, setError] = useState('');
   const [resultados, setResultados] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Cargar provincias
     const cargarProvincias = async () => {
       try {
         const response = await axios.get('/api/provincias');
@@ -38,13 +36,12 @@ function Simulador() {
   }, []);
 
   useEffect(() => {
-    // Cargar partidos cuando se selecciona una provincia
-    if (provinciaSeleccionada) {
-      const cargarPartidos = async () => {
+    const cargarPartidos = async () => {
+      if (provinciaSeleccionada) {
         try {
           const response = await axios.get(`/api/partidos/${provinciaSeleccionada}`);
           setPartidos(response.data);
-          // Inicializar porcentajes
+          // Inicializar porcentajes para cada partido
           const nuevosPorcentajes = {};
           response.data.forEach(partido => {
             nuevosPorcentajes[partido] = 0;
@@ -53,148 +50,140 @@ function Simulador() {
         } catch (error) {
           setError('Error al cargar los partidos');
         }
-      };
-      cargarPartidos();
-    }
+      }
+    };
+    cargarPartidos();
   }, [provinciaSeleccionada]);
 
-  const handleProvinciaChange = (event) => {
-    setProvinciaSeleccionada(event.target.value);
+  const handleProvinciaSelect = (provincia) => {
+    setProvinciaSeleccionada(provincia);
     setPorcentajes({});
-    setTotal(0);
+    setTotalVotos(0);
     setResultados(null);
+    setError('');
   };
 
   const handlePorcentajeChange = (partido, valor) => {
     const nuevoValor = parseFloat(valor) || 0;
-    const nuevoTotal = total - (porcentajes[partido] || 0) + nuevoValor;
-
-    if (nuevoTotal > 100) {
-      setError('El total no puede superar el 100%');
-      return;
-    }
-
-    setPorcentajes(prev => ({
-      ...prev,
-      [partido]: nuevoValor
-    }));
-    setTotal(nuevoTotal);
-    setError('');
+    const nuevosPorcentajes = { ...porcentajes, [partido]: nuevoValor };
+    setPorcentajes(nuevosPorcentajes);
+    
+    const total = Object.values(nuevosPorcentajes).reduce((sum, val) => sum + val, 0);
+    setTotalVotos(total);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (total !== 100) {
-      setError('El total debe ser 100%');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (totalVotos > 100) {
+      setError('El total de votos no puede superar el 100%');
       return;
     }
 
+    setLoading(true);
     try {
       const response = await axios.post('/api/simular', {
         provincia: provinciaSeleccionada,
         votos: porcentajes
       });
       setResultados(response.data);
+      setError('');
     } catch (error) {
-      setError('Error al simular las elecciones');
+      setError('Error al simular la elección');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Simulador de Elecciones
-        </Typography>
-
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Provincia</InputLabel>
-                <Select
-                  value={provinciaSeleccionada}
-                  onChange={handleProvinciaChange}
-                  label="Provincia"
-                >
-                  {provincias.map((provincia) => (
-                    <MenuItem key={provincia} value={provincia}>
-                      {provincia}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {partidos.map((partido) => (
-              <Grid item xs={12} sm={6} key={partido}>
-                <TextField
-                  fullWidth
-                  label={`${partido} (%)`}
-                  type="number"
-                  value={porcentajes[partido] || ''}
-                  onChange={(e) => handlePorcentajeChange(partido, e.target.value)}
-                  InputProps={{
-                    inputProps: { min: 0, max: 100, step: 0.1 }
-                  }}
-                />
-              </Grid>
-            ))}
-
-            <Grid item xs={12}>
-              <Typography variant="h6">
-                Total: {total.toFixed(1)}%
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 600 }}>
+            <MapaArgentina onProvinciaSelect={handleProvinciaSelect} />
+          </Paper>
+        </Grid>
+        
+        {provinciaSeleccionada && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="h6" gutterBottom>
+                Simulación para {provinciaSeleccionada}
               </Typography>
-            </Grid>
+              
+              <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+                <Grid container spacing={2}>
+                  {partidos.map((partido) => (
+                    <Grid item xs={12} sm={6} md={4} key={partido}>
+                      <TextField
+                        fullWidth
+                        label={`${partido} (%)`}
+                        type="number"
+                        value={porcentajes[partido] || ''}
+                        onChange={(e) => handlePorcentajeChange(partido, e.target.value)}
+                        inputProps={{ min: 0, max: 100, step: 0.1 }}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
 
-            {error && (
-              <Grid item xs={12}>
-                <Alert severity="error">{error}</Alert>
-              </Grid>
-            )}
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="subtitle1">
+                    Total: {totalVotos.toFixed(1)}%
+                  </Typography>
+                </Box>
 
-            <Grid item xs={12}>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                disabled={total !== 100}
-              >
-                Simular
-              </Button>
-            </Grid>
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  disabled={loading || totalVotos > 100}
+                  sx={{ mt: 2 }}
+                >
+                  {loading ? <CircularProgress size={24} /> : 'Simular'}
+                </Button>
+              </Box>
+
+              {resultados && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Resultados
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle1">
+                        Diputados:
+                      </Typography>
+                      {Object.entries(resultados.diputados).map(([partido, cantidad]) => (
+                        <Typography key={partido}>
+                          {partido}: {cantidad} bancas
+                        </Typography>
+                      ))}
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle1">
+                        Senadores:
+                      </Typography>
+                      {Object.entries(resultados.senadores).map(([partido, cantidad]) => (
+                        <Typography key={partido}>
+                          {partido}: {cantidad} bancas
+                        </Typography>
+                      ))}
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </Paper>
           </Grid>
-        </form>
-
-        {resultados && (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" gutterBottom>
-              Resultados
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="h6">Diputados:</Typography>
-                {Object.entries(resultados.diputados).map(([partido, escaños]) => (
-                  <Typography key={partido}>
-                    {partido}: {escaños} escaños
-                  </Typography>
-                ))}
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="h6">Senadores:</Typography>
-                {Object.entries(resultados.senadores).map(([partido, _]) => (
-                  <Typography key={partido}>
-                    {partido}: 1 senador
-                  </Typography>
-                ))}
-              </Grid>
-            </Grid>
-          </Box>
         )}
-      </Paper>
+      </Grid>
     </Container>
   );
-}
+};
 
 export default Simulador; 
