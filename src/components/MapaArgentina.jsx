@@ -1,102 +1,175 @@
-import React, { useState, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, Polygon } from '@react-google-maps/api';
-import { Box, Paper, Typography } from '@mui/material';
-import { provincias } from '../data/provincias';
+import React, { useRef, useEffect, useState } from 'react';
+import { Box, Paper, Typography, List, ListItem, ListItemButton, ListItemText, Divider } from '@mui/material';
+import argentinaSVG from '../data/argentina.svg?raw';
 
-const containerStyle = {
-  width: '100%',
-  height: '600px'
-};
+const PROVINCIAS = [
+  "AR-B", // Buenos Aires
+  "AR-C", // CABA
+  "AR-K", // Catamarca
+  "AR-H", // Chaco
+  "AR-U", // Chubut
+  "AR-X", // Córdoba
+  "AR-W", // Corrientes
+  "AR-E", // Entre Ríos
+  "AR-P", // Formosa
+  "AR-Y", // Jujuy
+  "AR-L", // La Pampa
+  "AR-F", // La Rioja
+  "AR-M", // Mendoza
+  "AR-N", // Misiones
+  "AR-Q", // Neuquén
+  "AR-R", // Río Negro
+  "AR-A", // Salta
+  "AR-J", // San Juan
+  "AR-D", // San Luis
+  "AR-Z", // Santa Cruz
+  "AR-S", // Santa Fe
+  "AR-G", // Santiago del Estero
+  "AR-V", // Tierra del Fuego
+  "AR-T", // Tucumán
+];
 
-const center = {
-  lat: -36.0,
-  lng: -64.0
+const provinciaNombre = {
+  "AR-B": "Buenos Aires",
+  "AR-C": "CABA",
+  "AR-K": "Catamarca",
+  "AR-H": "Chaco",
+  "AR-U": "Chubut",
+  "AR-X": "Córdoba",
+  "AR-W": "Corrientes",
+  "AR-E": "Entre Ríos",
+  "AR-P": "Formosa",
+  "AR-Y": "Jujuy",
+  "AR-L": "La Pampa",
+  "AR-F": "La Rioja",
+  "AR-M": "Mendoza",
+  "AR-N": "Misiones",
+  "AR-Q": "Neuquén",
+  "AR-R": "Río Negro",
+  "AR-A": "Salta",
+  "AR-J": "San Juan",
+  "AR-D": "San Luis",
+  "AR-Z": "Santa Cruz",
+  "AR-S": "Santa Fe",
+  "AR-G": "Santiago del Estero",
+  "AR-V": "Tierra del Fuego",
+  "AR-T": "Tucumán",
 };
 
 const MapaArgentina = ({ onProvinciaSelect }) => {
-  const [selectedProvincia, setSelectedProvincia] = useState(null);
-  const [hoveredProvincia, setHoveredProvincia] = useState(null);
+  const svgContainer = useRef(null);
+  const [selected, setSelected] = useState(null);
+  const [hovered, setHovered] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY" // Reemplazar con tu API key
-  });
-
-  const onLoad = useCallback(function callback(map) {
-    const bounds = new window.google.maps.LatLngBounds();
-    Object.values(provincias).forEach(provincia => {
-      provincia.paths.forEach(path => bounds.extend(path));
+  useEffect(() => {
+    if (!svgContainer.current) return;
+    
+    // Limpia listeners previos
+    PROVINCIAS.forEach(id => {
+      const el = svgContainer.current.querySelector(`#${id}`);
+      if (el) {
+        el.onmouseenter = null;
+        el.onmouseleave = null;
+        el.onclick = null;
+      }
     });
-    map.fitBounds(bounds);
-  }, []);
 
-  const handleProvinciaClick = (nombre) => {
-    setSelectedProvincia(nombre);
-    onProvinciaSelect(nombre);
+    // Asigna listeners y desactiva pointer-events en los textos
+    PROVINCIAS.forEach(id => {
+      const el = svgContainer.current.querySelector(`#${id}`);
+      if (el) {
+        console.log(`Setting up listeners for ${id}`); // Debug log
+        el.style.cursor = 'pointer';
+        el.onmouseenter = () => {
+          console.log(`Hovering ${id}`); // Debug log
+          setHovered(id);
+        };
+        el.onmouseleave = () => {
+          console.log(`Leaving ${id}`); // Debug log
+          setHovered(null);
+        };
+        el.onclick = (e) => {
+          console.log(`Clicked ${id}`); // Debug log
+          e.preventDefault(); // Prevent default behavior
+          e.stopPropagation(); // Prevent event bubbling
+          setSelected(id);
+          if (onProvinciaSelect) onProvinciaSelect(provinciaNombre[id] || id);
+        };
+        
+        // Desactiva pointer events en los textos hijos
+        el.querySelectorAll('text').forEach(txt => {
+          txt.setAttribute('pointer-events', 'none');
+        });
+        
+        // Resalta color y fill
+        const path = el.querySelector('path');
+        if (path) {
+          if (selected === id) {
+            path.setAttribute('stroke', '#d32f2f');
+            path.setAttribute('stroke-width', '4');
+            path.setAttribute('fill-opacity', '1');
+            path.setAttribute('filter', 'drop-shadow(0px 0px 8px #d32f2f88)');
+          } else if (hovered === id) {
+            path.setAttribute('stroke', '#ff9800');
+            path.setAttribute('stroke-width', '4');
+            path.setAttribute('fill-opacity', '0.7');
+            path.setAttribute('filter', 'drop-shadow(0px 0px 8px #ff980088)');
+          } else {
+            path.setAttribute('stroke', '#222');
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('fill-opacity', '1');
+            path.removeAttribute('filter');
+          }
+        }
+      } else {
+        console.log(`Element not found for ${id}`); // Debug log
+      }
+    });
+  }, [selected, hovered, onProvinciaSelect]);
+
+  const handleListSelect = (id) => {
+    setSelected(id);
+    if (onProvinciaSelect) onProvinciaSelect(provinciaNombre[id] || id);
   };
 
-  const handleProvinciaHover = (nombre) => {
-    setHoveredProvincia(nombre);
-  };
-
-  return isLoaded ? (
-    <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={center}
-        zoom={5}
-        onLoad={onLoad}
-        options={{
-          styles: [
-            {
-              featureType: 'administrative.country',
-              elementType: 'geometry',
-              stylers: [{ visibility: 'on' }]
-            },
-            {
-              featureType: 'water',
-              elementType: 'geometry',
-              stylers: [{ color: '#a2daf2' }]
-            }
-          ]
-        }}
-      >
-        {Object.entries(provincias).map(([nombre, data]) => (
-          <Polygon
-            key={nombre}
-            paths={data.paths}
-            options={{
-              fillColor: nombre === selectedProvincia ? '#FF0000' : 
-                        nombre === hoveredProvincia ? '#FFA500' : data.color,
-              fillOpacity: 0.7,
-              strokeColor: '#000000',
-              strokeWeight: 1,
-            }}
-            onClick={() => handleProvinciaClick(nombre)}
-            onMouseOver={() => handleProvinciaHover(nombre)}
-            onMouseOut={() => handleProvinciaHover(null)}
-          />
-        ))}
-      </GoogleMap>
-      {selectedProvincia && (
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            position: 'absolute', 
-            top: 20, 
-            right: 20, 
-            padding: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            zIndex: 1000
-          }}
-        >
-          <Typography variant="h6">
-            Provincia seleccionada: {selectedProvincia}
-          </Typography>
-        </Paper>
-      )}
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'row', width: '100%', height: '600px', textAlign: 'center' }}>
+      {/* Lista de provincias */}
+      <Paper elevation={2} sx={{ width: 220, maxHeight: 600, overflow: 'auto', mr: 2, mt: 2 }}>
+        <Typography variant="h6" sx={{ p: 2, pb: 1 }}>
+          Provincias
+        </Typography>
+        <Divider />
+        <List dense>
+          {PROVINCIAS.map(id => (
+            <ListItem key={id} disablePadding>
+              <ListItemButton
+                selected={selected === id}
+                onClick={() => handleListSelect(id)}
+              >
+                <ListItemText primary={provinciaNombre[id]} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
+      {/* Mapa SVG */}
+      <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+        <div
+          ref={svgContainer}
+          dangerouslySetInnerHTML={{ __html: argentinaSVG }}
+          style={{ width: '100%', height: '100%', maxWidth: 400, margin: 'auto' }}
+        />
+        {selected && (
+          <Paper elevation={3} sx={{ position: 'absolute', top: 20, right: 20, p: 2, minWidth: 200 }}>
+            <Typography variant="h6" gutterBottom>
+              {provinciaNombre[selected]}
+            </Typography>
+          </Paper>
+        )}
+      </Box>
     </Box>
-  ) : <Typography>Cargando mapa...</Typography>;
+  );
 };
 
 export default MapaArgentina; 

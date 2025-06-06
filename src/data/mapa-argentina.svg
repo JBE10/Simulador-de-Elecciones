@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Buenos Aires -->
+  <path
+    d="M 400,600 L 450,600 L 450,650 L 400,650 Z"
+    fill="#FF0000"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="425" y="625" text-anchor="middle">BA</text>
+
+  <!-- Córdoba -->
+  <path
+    d="M 300,500 L 350,500 L 350,550 L 300,550 Z"
+    fill="#00FF00"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="325" y="525" text-anchor="middle">C</text>
+
+  <!-- Santa Fe -->
+  <path
+    d="M 350,450 L 400,450 L 400,500 L 350,500 Z"
+    fill="#0000FF"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="375" y="475" text-anchor="middle">SF</text>
+
+  <!-- Mendoza -->
+  <path
+    d="M 200,550 L 250,550 L 250,600 L 200,600 Z"
+    fill="#FFFF00"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="225" y="575" text-anchor="middle">M</text>
+
+  <!-- Tucumán -->
+  <path
+    d="M 300,400 L 350,400 L 350,450 L 300,450 Z"
+    fill="#FF00FF"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="325" y="425" text-anchor="middle">T</text>
+
+  <!-- Salta -->
+  <path
+    d="M 250,300 L 300,300 L 300,350 L 250,350 Z"
+    fill="#00FFFF"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="275" y="325" text-anchor="middle">S</text>
+
+  <!-- Entre Ríos -->
+  <path
+    d="M 400,500 L 450,500 L 450,550 L 400,550 Z"
+    fill="#FFA500"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="425" y="525" text-anchor="middle">ER</text>
+
+  <!-- Chaco -->
+  <path
+    d="M 350,350 L 400,350 L 400,400 L 350,400 Z"
+    fill="#800080"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="375" y="375" text-anchor="middle">Ch</text>
+
+  <!-- Corrientes -->
+  <path
+    d="M 400,400 L 450,400 L 450,450 L 400,450 Z"
+    fill="#008000"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="425" y="425" text-anchor="middle">Co</text>
+
+  <!-- Misiones -->
+  <path
+    d="M 450,350 L 500,350 L 500,400 L 450,400 Z"
+    fill="#FFC0CB"
+    stroke="#000"
+    stroke-width="2"
+  />
+  <text x="475" y="375" text-anchor="middle">Mi</text>
+</svg> 

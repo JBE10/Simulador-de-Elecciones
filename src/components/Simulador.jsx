@@ -7,180 +7,176 @@ import {
   Button,
   Grid,
   Box,
+  CircularProgress,
   Alert,
-  CircularProgress
 } from '@mui/material';
-import axios from 'axios';
 import MapaArgentina from './MapaArgentina';
+import provinciasData from '../data/provincias.json';
 
 const Simulador = () => {
-  const [provincias, setProvincias] = useState([]);
+  const [selectedProvincia, setSelectedProvincia] = useState(null);
   const [partidos, setPartidos] = useState([]);
-  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState(null);
-  const [porcentajes, setPorcentajes] = useState({});
-  const [totalVotos, setTotalVotos] = useState(0);
-  const [error, setError] = useState('');
-  const [resultados, setResultados] = useState(null);
+  const [votos, setVotos] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [resultados, setResultados] = useState(null);
 
   useEffect(() => {
-    const cargarProvincias = async () => {
-      try {
-        const response = await axios.get('/api/provincias');
-        setProvincias(response.data);
-      } catch (error) {
-        setError('Error al cargar las provincias');
-      }
-    };
-    cargarProvincias();
-  }, []);
+    if (selectedProvincia) {
+      // Simulamos los partidos disponibles
+      setPartidos([
+        'Partido A',
+        'Partido B',
+        'Partido C',
+        'Partido D',
+        'Partido E'
+      ]);
+      setVotos({});
+      setResultados(null);
+    }
+  }, [selectedProvincia]);
 
-  useEffect(() => {
-    const cargarPartidos = async () => {
-      if (provinciaSeleccionada) {
-        try {
-          const response = await axios.get(`/api/partidos/${provinciaSeleccionada}`);
-          setPartidos(response.data);
-          // Inicializar porcentajes para cada partido
-          const nuevosPorcentajes = {};
-          response.data.forEach(partido => {
-            nuevosPorcentajes[partido] = 0;
-          });
-          setPorcentajes(nuevosPorcentajes);
-        } catch (error) {
-          setError('Error al cargar los partidos');
-        }
-      }
-    };
-    cargarPartidos();
-  }, [provinciaSeleccionada]);
-
-  const handleProvinciaSelect = (provincia) => {
-    setProvinciaSeleccionada(provincia);
-    setPorcentajes({});
-    setTotalVotos(0);
-    setResultados(null);
-    setError('');
+  const handleVotoChange = (partido, valor) => {
+    const nuevoValor = parseFloat(valor) || 0;
+    setVotos(prev => ({
+      ...prev,
+      [partido]: nuevoValor
+    }));
   };
 
-  const handlePorcentajeChange = (partido, valor) => {
-    const nuevoValor = parseFloat(valor) || 0;
-    const nuevosPorcentajes = { ...porcentajes, [partido]: nuevoValor };
-    setPorcentajes(nuevosPorcentajes);
-    
-    const total = Object.values(nuevosPorcentajes).reduce((sum, val) => sum + val, 0);
-    setTotalVotos(total);
+  const calcularTotal = () => {
+    return Object.values(votos).reduce((sum, val) => sum + val, 0);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (totalVotos > 100) {
+    const total = calcularTotal();
+    
+    if (total > 100) {
       setError('El total de votos no puede superar el 100%');
       return;
     }
 
     setLoading(true);
+    setError(null);
+
     try {
-      const response = await axios.post('/api/simular', {
-        provincia: provinciaSeleccionada,
-        votos: porcentajes
+      // Simulamos el cálculo de escaños
+      const escanos = provinciasData[selectedProvincia];
+      const votosArray = Object.entries(votos)
+        .filter(([_, valor]) => valor > 0)
+        .map(([partido, valor]) => ({
+          partido,
+          votos: valor
+        }));
+
+      // Implementación simple del método D'Hondt
+      const resultados = {};
+      const cocientes = {};
+      
+      votosArray.forEach(({ partido, votos }) => {
+        resultados[partido] = 0;
+        cocientes[partido] = votos;
       });
-      setResultados(response.data);
-      setError('');
-    } catch (error) {
-      setError('Error al simular la elección');
+
+      for (let i = 0; i < escanos; i++) {
+        let maxPartido = null;
+        let maxCociente = -1;
+
+        Object.entries(cocientes).forEach(([partido, cociente]) => {
+          if (cociente > maxCociente) {
+            maxCociente = cociente;
+            maxPartido = partido;
+          }
+        });
+
+        resultados[maxPartido]++;
+        cocientes[maxPartido] = votosArray.find(v => v.partido === maxPartido).votos / (resultados[maxPartido] + 1);
+      }
+
+      setResultados(resultados);
+    } catch (err) {
+      setError('Error al calcular los resultados');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 600 }}>
-            <MapaArgentina onProvinciaSelect={handleProvinciaSelect} />
-          </Paper>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Grid container spacing={4}>
+        <Grid item xs={12} md={8}>
+          <MapaArgentina onProvinciaSelect={setSelectedProvincia} />
         </Grid>
         
-        {provinciaSeleccionada && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="h6" gutterBottom>
-                Simulación para {provinciaSeleccionada}
+        <Grid item xs={12} md={4}>
+          {selectedProvincia ? (
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                {selectedProvincia}
               </Typography>
-              
+              <Typography variant="subtitle1" gutterBottom>
+                Escaños: {provinciasData[selectedProvincia]}
+              </Typography>
+
               <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-                <Grid container spacing={2}>
-                  {partidos.map((partido) => (
-                    <Grid item xs={12} sm={6} md={4} key={partido}>
-                      <TextField
-                        fullWidth
-                        label={`${partido} (%)`}
-                        type="number"
-                        value={porcentajes[partido] || ''}
-                        onChange={(e) => handlePorcentajeChange(partido, e.target.value)}
-                        inputProps={{ min: 0, max: 100, step: 0.1 }}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
+                {partidos.map((partido) => (
+                  <TextField
+                    key={partido}
+                    label={partido}
+                    type="number"
+                    value={votos[partido] || ''}
+                    onChange={(e) => handleVotoChange(partido, e.target.value)}
+                    fullWidth
+                    margin="normal"
+                    InputProps={{
+                      inputProps: { min: 0, max: 100, step: 0.1 }
+                    }}
+                  />
+                ))}
 
-                <Box sx={{ mt: 2, mb: 2 }}>
-                  <Typography variant="subtitle1">
-                    Total: {totalVotos.toFixed(1)}%
-                  </Typography>
-                </Box>
-
-                {error && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                  </Alert>
-                )}
+                <Typography variant="body2" sx={{ mt: 2, mb: 2 }}>
+                  Total: {calcularTotal().toFixed(1)}%
+                </Typography>
 
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
-                  disabled={loading || totalVotos > 100}
-                  sx={{ mt: 2 }}
+                  fullWidth
+                  disabled={loading}
                 >
                   {loading ? <CircularProgress size={24} /> : 'Simular'}
                 </Button>
               </Box>
+
+              {error && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {error}
+                </Alert>
+              )}
 
               {resultados && (
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     Resultados
                   </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle1">
-                        Diputados:
-                      </Typography>
-                      {Object.entries(resultados.diputados).map(([partido, cantidad]) => (
-                        <Typography key={partido}>
-                          {partido}: {cantidad} bancas
-                        </Typography>
-                      ))}
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle1">
-                        Senadores:
-                      </Typography>
-                      {Object.entries(resultados.senadores).map(([partido, cantidad]) => (
-                        <Typography key={partido}>
-                          {partido}: {cantidad} bancas
-                        </Typography>
-                      ))}
-                    </Grid>
-                  </Grid>
+                  {Object.entries(resultados).map(([partido, escaños]) => (
+                    <Typography key={partido}>
+                      {partido}: {escaños} escaño(s)
+                    </Typography>
+                  ))}
                 </Box>
               )}
             </Paper>
-          </Grid>
-        )}
+          ) : (
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6">
+                Selecciona una provincia para comenzar
+              </Typography>
+            </Paper>
+          )}
+        </Grid>
       </Grid>
     </Container>
   );
