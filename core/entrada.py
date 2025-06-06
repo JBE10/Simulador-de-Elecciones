@@ -2,6 +2,26 @@
 Módulo para manejar la entrada de datos del usuario.
 """
 
+import json
+import os
+
+def cargar_partidos():
+    """
+    Carga los partidos precargados desde el archivo JSON.
+    
+    Returns:
+        dict: Diccionario con los partidos por provincia
+    """
+    try:
+        with open('data/partidos.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Error: No se encontró el archivo de partidos")
+        return {}
+    except json.JSONDecodeError:
+        print("Error: El archivo de partidos no es un JSON válido")
+        return {}
+
 def obtener_provincia():
     """
     Solicita al usuario que ingrese una provincia.
@@ -30,43 +50,54 @@ def obtener_provincia():
         except ValueError:
             print("Por favor, ingrese un número válido.")
 
-def obtener_porcentajes():
+def obtener_porcentajes(provincia):
     """
     Solicita al usuario que ingrese los porcentajes de votos por partido.
     
+    Args:
+        provincia (str): Nombre de la provincia seleccionada
+        
     Returns:
         dict: Diccionario con los porcentajes por partido
     """
+    partidos = cargar_partidos()
+    if provincia not in partidos:
+        print(f"Error: No se encontraron partidos para la provincia {provincia}")
+        return {}
+        
     votos = {}
     total = 0
     
-    print("\nIngrese los porcentajes de votos por partido (ingrese 0 para terminar):")
+    print(f"\nPartidos disponibles en {provincia}:")
+    for i, partido in enumerate(partidos[provincia], 1):
+        print(f"{i}. {partido}")
     
-    while True:
-        partido = input("\nNombre del partido (o 0 para terminar): ")
-        if partido == "0":
-            break
-            
-        try:
-            porcentaje = float(input(f"Porcentaje de votos para {partido}: "))
-            if porcentaje < 0:
-                print("El porcentaje no puede ser negativo.")
-                continue
-            if total + porcentaje > 100:
-                print(f"El total no puede superar el 100%. Restante: {100 - total}%")
-                continue
+    print("\nIngrese los porcentajes de votos por partido:")
+    
+    for partido in partidos[provincia]:
+        while True:
+            try:
+                porcentaje = float(input(f"\nPorcentaje de votos para {partido}: "))
+                if porcentaje < 0:
+                    print("El porcentaje no puede ser negativo.")
+                    continue
+                if total + porcentaje > 100:
+                    print(f"El total no puede superar el 100%. Restante: {100 - total}%")
+                    continue
+                    
+                votos[partido] = porcentaje
+                total += porcentaje
                 
-            votos[partido] = porcentaje
-            total += porcentaje
-            
-            print(f"Total acumulado: {total}%")
-            
-            if total >= 100:
-                print("Se ha alcanzado el 100% de los votos.")
+                print(f"Total acumulado: {total}%")
+                
+                if total >= 100:
+                    print("Se ha alcanzado el 100% de los votos.")
+                    return votos
+                    
                 break
-                
-        except ValueError:
-            print("Por favor, ingrese un número válido.")
+                    
+            except ValueError:
+                print("Por favor, ingrese un número válido.")
     
     return votos
 

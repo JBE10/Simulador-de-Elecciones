@@ -53,7 +53,7 @@ def main():
     print(f"\nProvincia seleccionada: {provincia}")
     
     # Obtener porcentajes de votos
-    porcentajes = obtener_porcentajes()
+    porcentajes = obtener_porcentajes(provincia)
     if not porcentajes:
         print("No se ingresaron datos de votos. Saliendo...")
         sys.exit(1)
