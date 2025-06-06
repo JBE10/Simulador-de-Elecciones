@@ -60,7 +60,14 @@ simulador_elecciones/
 python main.py configuracion.json
 ```
 
-3. Los resultados se guardarán en:
+3. También puedes ejecutar el modo interactivo, que permite ingresar los
+   porcentajes manualmente:
+
+```bash
+python interactive.py
+```
+
+4. Los resultados se guardarán en:
    - `resultados.json`: Resultados completos en formato JSON
    - `resultados.csv`: Resultados de diputados en formato CSV
 
