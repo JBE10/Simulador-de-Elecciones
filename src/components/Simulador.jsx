@@ -9,9 +9,40 @@ import {
   Box,
   CircularProgress,
   Alert,
+  useMediaQuery,
 } from '@mui/material';
 import MapaArgentina from './MapaArgentina';
+import PanelPorcentajes from './PanelPorcentajes';
+import Resultados from './Resultados';
 import provinciasData from '../data/provincias.json';
+import partidosData from '../../data/partidos.json';
+
+const provinciaIdToNombre = {
+  "AR-B": "Buenos Aires",
+  "AR-C": "CABA",
+  "AR-K": "Catamarca",
+  "AR-H": "Chaco",
+  "AR-U": "Chubut",
+  "AR-X": "Córdoba",
+  "AR-W": "Corrientes",
+  "AR-E": "Entre Ríos",
+  "AR-P": "Formosa",
+  "AR-Y": "Jujuy",
+  "AR-L": "La Pampa",
+  "AR-F": "La Rioja",
+  "AR-M": "Mendoza",
+  "AR-N": "Misiones",
+  "AR-Q": "Neuquén",
+  "AR-R": "Río Negro",
+  "AR-A": "Salta",
+  "AR-J": "San Juan",
+  "AR-D": "San Luis",
+  "AR-Z": "Santa Cruz",
+  "AR-S": "Santa Fe",
+  "AR-G": "Santiago del Estero",
+  "AR-V": "Tierra del Fuego",
+  "AR-T": "Tucumán",
+};
 
 const Simulador = () => {
   const [selectedProvincia, setSelectedProvincia] = useState(null);
@@ -20,17 +51,13 @@ const Simulador = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [resultados, setResultados] = useState(null);
+  const [porcentajes, setPorcentajes] = useState({});
+  const isMdUp = useMediaQuery('(min-width:900px)');
 
   useEffect(() => {
     if (selectedProvincia) {
       // Simulamos los partidos disponibles
-      setPartidos([
-        'Partido A',
-        'Partido B',
-        'Partido C',
-        'Partido D',
-        'Partido E'
-      ]);
+      setPartidos(partidosData[selectedProvincia] || []);
       setVotos({});
       setResultados(null);
     }
@@ -106,7 +133,27 @@ const Simulador = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={4}>
         <Grid item xs={12} md={8}>
-          <MapaArgentina onProvinciaSelect={setSelectedProvincia} />
+          <Box sx={{
+            display: 'flex',
+            flexDirection: isMdUp ? 'row' : 'column',
+            alignItems: 'flex-start',
+            gap: 3,
+            width: '100%',
+            mt: 2,
+          }}>
+            <Box sx={{ flex: 1, minWidth: 350 }}>
+              <MapaArgentina onProvinciaSelect={setSelectedProvincia} />
+            </Box>
+            {selectedProvincia && partidos.length > 0 && (
+              <Box sx={{ flex: 1, minWidth: 300, width: '100%' }}>
+                <PanelPorcentajes
+                  partidos={partidos}
+                  valores={porcentajes}
+                  onChange={setPorcentajes}
+                />
+              </Box>
+            )}
+          </Box>
         </Grid>
         
         <Grid item xs={12} md={4}>
